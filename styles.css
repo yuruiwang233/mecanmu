@@ -1,0 +1,707 @@
+:root {
+  color-scheme: light;
+  font-family:
+    Inter, "Segoe UI", "PingFang SC", "Microsoft YaHei", Arial, sans-serif;
+  background: #eef2f6;
+  color: #17202a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background:
+    linear-gradient(135deg, rgba(21, 94, 117, 0.12), transparent 34%),
+    linear-gradient(315deg, rgba(22, 101, 52, 0.1), transparent 32%),
+    #eef2f6;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+.app-shell {
+  width: min(100%, 680px);
+  display: grid;
+  gap: 16px;
+  padding: 22px;
+  border: 1px solid rgba(23, 32, 42, 0.1);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 24px 60px rgba(20, 29, 38, 0.12);
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.eyebrow {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+  color: #0f766e;
+  text-transform: uppercase;
+}
+
+h1 {
+  margin: 0;
+  font-size: clamp(26px, 5vw, 38px);
+  line-height: 1.05;
+}
+
+.primary-button,
+.control-button,
+.rotate-button {
+  min-height: 48px;
+  border: 0;
+  border-radius: 10px;
+  cursor: pointer;
+  transition:
+    transform 140ms ease,
+    background 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.primary-button {
+  flex: 0 0 auto;
+  padding: 0 22px;
+  color: white;
+  background: #0f766e;
+  box-shadow: 0 10px 20px rgba(15, 118, 110, 0.22);
+  font-weight: 700;
+}
+
+.primary-button:hover,
+.control-button:hover,
+.rotate-button:hover {
+  transform: translateY(-1px);
+}
+
+.primary-button:disabled,
+.control-button:disabled,
+.rotate-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  transform: none;
+  box-shadow: none;
+}
+
+.status-panel,
+.speed-panel,
+.command-map {
+  border: 1px solid rgba(23, 32, 42, 0.1);
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.status-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 13px 16px;
+  font-weight: 700;
+}
+
+.status-panel > div {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #9ca3af;
+}
+
+.status-dot.connected {
+  background: #16a34a;
+  box-shadow: 0 0 0 6px rgba(22, 163, 74, 0.12);
+}
+
+#lastCommand {
+  color: #475569;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.speed-panel {
+  display: grid;
+  grid-template-columns: auto 1fr 48px;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+}
+
+.speed-panel label {
+  font-weight: 800;
+}
+
+.speed-panel input {
+  width: 100%;
+  accent-color: #0f766e;
+}
+
+.speed-panel output {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: #0f766e;
+  font-weight: 800;
+}
+
+/* ---- 方向控制区 ---- */
+.control-pad {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(80px, 1fr));
+  grid-template-rows: repeat(3, 88px);
+  gap: 12px;
+}
+
+.control-button {
+  width: 100%;
+  height: 100%;
+  color: #10202a;
+  background: #dbeafe;
+  font-size: 19px;
+  font-weight: 800;
+  box-shadow: inset 0 -3px 0 rgba(15, 23, 42, 0.08);
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.control-button:active,
+.control-button.active {
+  transform: translateY(2px);
+  background: #93c5fd;
+  box-shadow: inset 0 2px 0 rgba(15, 23, 42, 0.08);
+}
+
+.control-button.up {
+  grid-column: 2;
+}
+
+.control-button.left {
+  grid-column: 1;
+  grid-row: 2;
+  background: #dcfce7;
+}
+
+.control-button.stop {
+  grid-column: 2;
+  grid-row: 2;
+  color: white;
+  background: #b91c1c;
+}
+
+.control-button.right {
+  grid-column: 3;
+  grid-row: 2;
+  background: #dcfce7;
+}
+
+.control-button.down {
+  grid-column: 2;
+  grid-row: 3;
+}
+
+.control-button.left:active,
+.control-button.left.active,
+.control-button.right:active,
+.control-button.right.active {
+  background: #86efac;
+}
+
+.control-button.stop:active,
+.control-button.stop.active {
+  background: #7f1d1d;
+}
+
+/* ---- 原地旋转按钮 ---- */
+.rotate-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.rotate-button {
+  height: 56px;
+  color: #7c2d12;
+  background: #ffedd5;
+  font-size: 17px;
+  font-weight: 800;
+  box-shadow: inset 0 -3px 0 rgba(15, 23, 42, 0.08);
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.rotate-button:active,
+.rotate-button.active {
+  transform: translateY(2px);
+  background: #fdba74;
+  box-shadow: inset 0 2px 0 rgba(15, 23, 42, 0.08);
+}
+
+.rotate-button.left-rot { border-radius: 10px 4px 4px 10px; }
+.rotate-button.right-rot { border-radius: 4px 10px 10px 4px; }
+
+.command-map {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px;
+}
+
+.command-map span {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 10px;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* ============================================================
+   手柄遥控
+   ============================================================ */
+[hidden] {
+  display: none !important;
+}
+
+.mode-select {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  padding: 5px;
+  background: #e6edf4;
+  border: 1px solid rgba(23, 32, 42, 0.08);
+  border-radius: 10px;
+}
+
+.mode-btn {
+  padding: 11px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #475569;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  transition:
+    background 150ms ease,
+    color 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.mode-btn:hover:not(.active) {
+  color: #0f766e;
+}
+
+.mode-btn.active {
+  background: #ffffff;
+  color: #0f766e;
+  box-shadow: 0 3px 10px rgba(15, 118, 110, 0.14);
+}
+
+/* ---- 手柄状态条 ---- */
+.pad-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  border: 1px solid rgba(23, 32, 42, 0.1);
+  border-radius: 10px;
+  background: #f8fafc;
+  padding: 11px 14px;
+}
+
+.pad-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #9ca3af;
+}
+
+.pad-dot.on {
+  background: #16a34a;
+  box-shadow: 0 0 0 6px rgba(22, 163, 74, 0.12);
+}
+
+#padStatusText {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.pad-info {
+  margin-left: auto;
+  color: #64748b;
+  font-size: 12px;
+  font-family: Consolas, "Courier New", monospace;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+/* ---- 手柄图形映射卡片 ---- */
+.gamepad-card {
+  border: 1px solid rgba(23, 32, 42, 0.1);
+  border-radius: 10px;
+  background: #f8fafc;
+  padding: 14px;
+}
+
+.gamepad-card h3 {
+  margin: 0 0 10px;
+  font-size: 14px;
+  font-weight: 800;
+  color: #17202a;
+}
+
+.gamepad-wrap {
+  border-radius: 10px;
+  overflow: hidden;
+  background: #0d1117;
+}
+
+.gamepad-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* ---- LT / RT 双扳机行 ---- */
+.trigger-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-top: 12px;
+}
+
+.pad-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pt-name {
+  width: 30px;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 13px;
+  font-weight: 800;
+  color: #64748b;
+}
+
+.lt-name { color: #0f766e; }
+.rt-name { color: #b91c1c; }
+
+.pt-track {
+  flex: 1;
+  height: 18px;
+  background: #eef2f6;
+  border: 1px solid rgba(23, 32, 42, 0.1);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.pt-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: 8px;
+  transition: width 30ms linear;
+}
+
+.lt-fill {
+  background: linear-gradient(90deg, #99f6e4, #0f766e);
+}
+
+.rt-fill {
+  background: linear-gradient(90deg, #fecaca, #dc2626);
+}
+
+.pt-val {
+  width: 46px;
+  text-align: right;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f766e;
+}
+
+.lt-val { color: #0f766e; }
+.rt-val { color: #dc2626; }
+
+/* ---- 摇杆圆盘卡片 ---- */
+.pad-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.pad-card {
+  border: 1px solid rgba(23, 32, 42, 0.1);
+  border-radius: 10px;
+  background: #f8fafc;
+  padding: 14px;
+}
+
+.pad-card h3 {
+  margin: 0 0 10px;
+  font-size: 14px;
+  font-weight: 800;
+  color: #17202a;
+}
+
+.pad-svg {
+  width: 100%;
+  max-width: 250px;
+  display: block;
+  margin: 0 auto;
+}
+
+.w-track {
+  fill: #ffffff;
+  stroke: #d5e0ec;
+  stroke-width: 7;
+}
+
+.w-cross {
+  stroke: #e2e9f1;
+  stroke-width: 1;
+  stroke-dasharray: 3 5;
+}
+
+.w-deadzone {
+  fill: none;
+  stroke: #9fb0c3;
+  stroke-width: 1.5;
+  stroke-dasharray: 4 4;
+}
+
+.w-dot {
+  fill: #0f766e;
+  stroke: #0d9488;
+  stroke-width: 2;
+  transition: cx 30ms linear, cy 30ms linear;
+}
+
+.w-dot.r {
+  fill: #1d4ed8;
+  stroke: #3b82f6;
+}
+
+.w-ray {
+  stroke: #0f766e;
+  stroke-width: 2;
+  stroke-linecap: round;
+  opacity: 0.85;
+}
+
+.w-ray.r {
+  stroke: #1d4ed8;
+}
+
+.w-arc {
+  fill: none;
+  stroke: #0f766e;
+  stroke-width: 5;
+  stroke-linecap: round;
+  opacity: 0.25;
+}
+
+.w-arc.r {
+  stroke: #1d4ed8;
+}
+
+.w-compass {
+  font-size: 13px;
+  fill: #94a3b8;
+  text-anchor: middle;
+  dominant-baseline: central;
+  user-select: none;
+  font-weight: 700;
+}
+
+.pad-readout {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.pad-readout .tag {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 5px 4px;
+  background: #ffffff;
+  border: 1px solid rgba(23, 32, 42, 0.1);
+  border-radius: 8px;
+  font-size: 11px;
+  color: #64748b;
+}
+
+.pad-readout .tag b {
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 14px;
+  color: #17202a;
+  font-weight: 800;
+}
+
+.pad-note {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #64748b;
+}
+
+/* ---- 当前控制状态 ---- */
+.pad-state {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  border: 1px solid rgba(23, 32, 42, 0.1);
+  border-radius: 10px;
+  background: #f8fafc;
+  padding: 12px 14px;
+}
+
+.pad-badge {
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.pad-badge.live {
+  background: #ccfbf1;
+  color: #0f766e;
+}
+
+.pad-motor {
+  display: flex;
+  gap: 12px;
+  font-size: 13px;
+  color: #475569;
+  font-weight: 700;
+}
+
+.pad-motor b {
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 15px;
+  color: #17202a;
+}
+
+/* ---- 按键状态 chips ---- */
+.pad-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  border: 1px solid rgba(23, 32, 42, 0.1);
+  border-radius: 10px;
+  background: #f8fafc;
+  padding: 12px 14px;
+}
+
+.chip {
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: #ffffff;
+  border: 1px solid rgba(23, 32, 42, 0.12);
+  font-size: 12px;
+  font-weight: 800;
+  color: #94a3b8;
+  transition:
+    background 80ms ease,
+    color 80ms ease,
+    border-color 80ms ease;
+}
+
+.chip.on {
+  color: #ffffff;
+  background: #0f766e;
+  border-color: #0f766e;
+}
+
+/* ---- 操作说明 ---- */
+.pad-hints {
+  display: grid;
+  gap: 5px;
+  border: 1px solid rgba(23, 32, 42, 0.1);
+  border-radius: 10px;
+  background: #f8fafc;
+  padding: 12px 14px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: #475569;
+}
+
+.pad-hints p {
+  margin: 0;
+}
+
+@media (max-width: 540px) {
+  body {
+    padding: 12px;
+    place-items: stretch;
+  }
+
+  .app-shell {
+    padding: 14px;
+    gap: 12px;
+  }
+
+  .topbar,
+  .status-panel {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .primary-button {
+    width: 100%;
+  }
+
+  .control-pad {
+    grid-template-columns: repeat(3, minmax(64px, 1fr));
+    grid-template-rows: repeat(3, 76px);
+    gap: 10px;
+  }
+
+  .control-button {
+    font-size: 16px;
+  }
+
+  .pad-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pad-info {
+    margin-left: 0;
+  }
+
+  .trigger-row {
+    grid-template-columns: 1fr;
+  }
+}

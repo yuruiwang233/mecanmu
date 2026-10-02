@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>ESP32-S3 麦轮小车遥控</title>
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230F766E'/%3E%3Ccircle cx='20' cy='20' r='6' fill='%23fff'/%3E%3Ccircle cx='44' cy='20' r='6' fill='%23fff'/%3E%3Ccircle cx='20' cy='44' r='6' fill='%23fff'/%3E%3Ccircle cx='44' cy='44' r='6' fill='%23fff'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="topbar">
+        <div>
+          <p class="eyebrow">ESP32-S3 Mecanum Controller</p>
+          <h1>麦轮小车遥控</h1>
+        </div>
+        <button id="connectButton" class="primary-button" type="button">
+          连接蓝牙
+        </button>
+      </section>
+
+      <section class="mode-select" aria-label="遥控方式">
+        <button class="mode-btn active" type="button" data-mode="phone">手机遥控</button>
+        <button class="mode-btn" type="button" data-mode="pad">手柄遥控</button>
+      </section>
+
+      <section class="status-panel" aria-live="polite">
+        <div>
+          <span class="status-dot" id="statusDot"></span>
+          <span id="statusText">未连接</span>
+        </div>
+        <span id="lastCommand">等待指令</span>
+      </section>
+
+      <!-- ===== 手机遥控 ===== -->
+      <div id="phoneView">
+        <section class="speed-panel">
+          <label for="speedSlider">速度</label>
+          <input id="speedSlider" type="range" min="80" max="255" value="180" />
+          <output id="speedValue" for="speedSlider">180</output>
+        </section>
+
+        <section class="control-pad" aria-label="方向控制">
+          <button class="control-button up" type="button" data-command="F">前进</button>
+          <button class="control-button left" type="button" data-command="L">左移</button>
+          <button class="control-button stop" type="button" data-command="S">停止</button>
+          <button class="control-button right" type="button" data-command="R">右移</button>
+          <button class="control-button down" type="button" data-command="B">后退</button>
+        </section>
+
+        <section class="rotate-row">
+          <button class="rotate-button left-rot" type="button" data-command="TL">↺ 原地左转</button>
+          <button class="rotate-button right-rot" type="button" data-command="TR">↻ 原地右转</button>
+        </section>
+
+        <section class="command-map">
+          <span>W / ↑ 前进</span>
+          <span>S / ↓ 后退</span>
+          <span>A / ← 左移</span>
+          <span>D / → 右移</span>
+          <span>空格 停止</span>
+        </section>
+      </div>
+
+      <!-- ===== 手柄遥控 ===== -->
+      <div id="padView" hidden>
+        <section class="pad-meta" aria-live="polite">
+          <span class="pad-dot" id="padDot"></span>
+          <span id="padStatusText">未检测到手柄</span>
+          <span class="pad-info" id="padInfo">—</span>
+        </section>
+
+        <!-- ===== 手柄图形映射 ===== -->
+        <section class="gamepad-card">
+          <h3>手柄状态映射</h3>
+          <div class="gamepad-wrap">
+            <svg class="gamepad-svg" viewBox="0 0 800 480" aria-label="手柄图形映射">
+              <!-- 背景 -->
+              <rect x="0" y="0" width="800" height="480" rx="12" fill="#0d1117"/>
+
+              <!-- LT / RT 扳机指示框 -->
+              <g id="gp-lt-box">
+                <text x="130" y="30" text-anchor="middle" fill="#8b949e" font-size="14" font-weight="700" font-family="Consolas,monospace">LT</text>
+                <rect x="110" y="40" width="40" height="60" rx="6" fill="none" stroke="#8b949e" stroke-width="2"/>
+                <rect id="gp-lt-fill" x="114" y="44" width="32" height="0" rx="4" fill="#0f766e"/>
+              </g>
+              <g id="gp-rt-box">
+                <text x="670" y="30" text-anchor="middle" fill="#8b949e" font-size="14" font-weight="700" font-family="Consolas,monospace">RT</text>
+                <rect x="650" y="40" width="40" height="60" rx="6" fill="none" stroke="#8b949e" stroke-width="2"/>
+                <rect id="gp-rt-fill" x="654" y="96" width="32" height="0" rx="4" fill="#dc2626"/>
+              </g>
+
+              <!-- LB / RB 肩键 -->
+              <path id="gp-lb" d="M 180 115 Q 260 95 350 105 L 350 120 Q 260 112 180 130 Z"
+                    fill="none" stroke="#8b949e" stroke-width="2.5" stroke-linejoin="round"/>
+              <path id="gp-rb" d="M 450 105 Q 540 95 620 115 L 620 130 Q 540 112 450 120 Z"
+                    fill="none" stroke="#8b949e" stroke-width="2.5" stroke-linejoin="round"/>
+
+              <!-- 手柄主体轮廓 -->
+              <path d="M 210 130
+                       C 170 130, 140 150, 130 190
+                       C 120 230, 115 290, 135 350
+                       C 145 390, 175 415, 215 415
+                       C 260 415, 310 395, 360 385
+                       L 440 385
+                       C 490 395, 540 415, 585 415
+                       C 625 415, 655 390, 665 350
+                       C 685 290, 680 230, 670 190
+                       C 660 150, 630 130, 590 130
+                       C 540 118, 460 115, 400 115
+                       C 340 115, 260 118, 210 130 Z"
+                    fill="#161b22" stroke="#c9d1d9" stroke-width="3" stroke-linejoin="round"/>
+
+              <!-- 方向键 D-Pad -->
+              <g id="gp-dpad">
+                <rect x="232" y="300" width="56" height="20" rx="3" fill="none" stroke="#c9d1d9" stroke-width="2.5"/>
+                <rect x="250" y="282" width="20" height="56" rx="3" fill="none" stroke="#c9d1d9" stroke-width="2.5"/>
+              </g>
+
+              <!-- 左摇杆 -->
+              <circle cx="240" cy="225" r="38" fill="none" stroke="#484f58" stroke-width="2" stroke-dasharray="5 4"/>
+              <circle cx="240" cy="225" r="22" fill="#21262d" stroke="#8b949e" stroke-width="2"/>
+              <g id="gp-left-stick">
+                <line x1="228" y1="225" x2="252" y2="225" stroke="#f97316" stroke-width="2.5" stroke-linecap="round"/>
+                <line x1="240" y1="213" x2="240" y2="237" stroke="#f97316" stroke-width="2.5" stroke-linecap="round"/>
+                <circle cx="240" cy="225" r="4" fill="#f97316"/>
+              </g>
+
+              <!-- 右摇杆 -->
+              <circle cx="560" cy="310" r="38" fill="none" stroke="#484f58" stroke-width="2" stroke-dasharray="5 4"/>
+              <circle cx="560" cy="310" r="22" fill="#21262d" stroke="#8b949e" stroke-width="2"/>
+              <g id="gp-right-stick">
+                <line x1="548" y1="310" x2="572" y2="310" stroke="#f97316" stroke-width="2.5" stroke-linecap="round"/>
+                <line x1="560" y1="298" x2="560" y2="322" stroke="#f97316" stroke-width="2.5" stroke-linecap="round"/>
+                <circle cx="560" cy="310" r="4" fill="#f97316"/>
+              </g>
+
+              <!-- 中间按钮 -->
+              <circle cx="400" cy="185" r="18" fill="none" stroke="#c9d1d9" stroke-width="2.5"/>
+              <path d="M 393 180 L 400 192 L 407 180" fill="none" stroke="#c9d1d9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <rect x="345" y="195" width="16" height="16" rx="3" fill="none" stroke="#8b949e" stroke-width="2"/>
+              <rect x="439" y="195" width="16" height="16" rx="3" fill="none" stroke="#8b949e" stroke-width="2"/>
+              <rect x="392" y="225" width="16" height="16" rx="3" fill="none" stroke="#8b949e" stroke-width="2"/>
+
+              <!-- 动作按键 Y X B A -->
+              <g id="gp-btn-y">
+                <circle cx="580" cy="170" r="18" fill="none" stroke="#c9d1d9" stroke-width="2.5"/>
+                <text x="580" y="175" text-anchor="middle" fill="#c9d1d9" font-size="16" font-weight="700" font-family="Consolas,monospace">Y</text>
+              </g>
+              <g id="gp-btn-x">
+                <circle cx="545" cy="205" r="18" fill="none" stroke="#c9d1d9" stroke-width="2.5"/>
+                <text x="545" y="210" text-anchor="middle" fill="#c9d1d9" font-size="16" font-weight="700" font-family="Consolas,monospace">X</text>
+              </g>
+              <g id="gp-btn-b">
+                <circle cx="615" cy="205" r="18" fill="none" stroke="#c9d1d9" stroke-width="2.5"/>
+                <text x="615" y="210" text-anchor="middle" fill="#c9d1d9" font-size="16" font-weight="700" font-family="Consolas,monospace">B</text>
+              </g>
+              <g id="gp-btn-a">
+                <circle cx="580" cy="240" r="18" fill="none" stroke="#c9d1d9" stroke-width="2.5"/>
+                <text x="580" y="245" text-anchor="middle" fill="#c9d1d9" font-size="16" font-weight="700" font-family="Consolas,monospace">A</text>
+              </g>
+            </svg>
+          </div>
+
+          <!-- LT / RT 数值条 -->
+          <div class="trigger-row">
+            <div class="pad-trigger">
+              <span class="pt-name lt-name">LT</span>
+              <div class="pt-track"><div class="pt-fill lt-fill" id="padLT-fill"></div></div>
+              <span class="pt-val lt-val" id="padLT-val">0.00</span>
+            </div>
+            <div class="pad-trigger">
+              <span class="pt-name rt-name">RT</span>
+              <div class="pt-track"><div class="pt-fill rt-fill" id="padRT-fill"></div></div>
+              <span class="pt-val rt-val" id="padRT-val">0.00</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===== 原有摇杆圆盘（保持不变） ===== -->
+        <section class="pad-grid">
+          <div class="pad-card">
+            <h3>左摇杆 · 全向操控（优先）</h3>
+            <svg class="pad-svg" viewBox="0 0 240 240" aria-label="左摇杆角度">
+              <circle class="w-track" cx="120" cy="120" r="92" />
+              <line class="w-cross" x1="28" y1="120" x2="212" y2="120" />
+              <line class="w-cross" x1="120" y1="28" x2="120" y2="212" />
+              <circle class="w-deadzone" cx="120" cy="120" r="12" />
+              <path class="w-arc" id="padL-arc" d="" />
+              <line class="w-ray" id="padL-ray" x1="120" y1="120" x2="120" y2="120" />
+              <circle class="w-dot" id="padL-dot" cx="120" cy="120" r="13" />
+              <text class="w-compass" x="120" y="42">前</text>
+              <text class="w-compass" x="120" y="204">后</text>
+              <text class="w-compass" x="30" y="122">左</text>
+              <text class="w-compass" x="210" y="122">右</text>
+            </svg>
+            <div class="pad-readout">
+              <span class="tag">角度<b id="padL-angle">0.0°</b></span>
+              <span class="tag">力度<b id="padL-mag">0%</b></span>
+              <span class="tag">X<b id="padL-x">0.00</b></span>
+              <span class="tag">Y<b id="padL-y">0.00</b></span>
+            </div>
+            <p class="pad-note">左摇杆推哪个方向，麦轮就往哪个方向全向移动；推得越远速度越快，可独立完成全向运动。</p>
+          </div>
+
+          <div class="pad-card">
+            <h3>LT 前进 / RT 倒车 + 右摇杆方向</h3>
+            <svg class="pad-svg" viewBox="0 0 240 240" aria-label="右摇杆角度">
+              <circle class="w-track" cx="120" cy="120" r="92" />
+              <line class="w-cross" x1="28" y1="120" x2="212" y2="120" />
+              <line class="w-cross" x1="120" y1="28" x2="120" y2="212" />
+              <circle class="w-deadzone" cx="120" cy="120" r="12" />
+              <path class="w-arc r" id="padR-arc" d="" />
+              <line class="w-ray r" id="padR-ray" x1="120" y1="120" x2="120" y2="120" />
+              <circle class="w-dot r" id="padR-dot" cx="120" cy="120" r="13" />
+              <text class="w-compass" x="120" y="42">前</text>
+              <text class="w-compass" x="120" y="204">后</text>
+              <text class="w-compass" x="30" y="122">左</text>
+              <text class="w-compass" x="210" y="122">右</text>
+            </svg>
+            <div class="pad-readout">
+              <span class="tag">角度<b id="padR-angle">0.0°</b></span>
+              <span class="tag">力度<b id="padR-mag">0%</b></span>
+              <span class="tag">X<b id="padR-x">0.00</b></span>
+              <span class="tag">Y<b id="padR-y">0.00</b></span>
+            </div>
+            <p class="pad-note">LT 线性扳机控制前进油门，RT 线性扳机控制倒车油门；右摇杆只选方向（忽略力度），LT 沿摇杆指向前进、RT 沿反方向倒车。右摇杆居中时按 LT 默认前进、按 RT 默认后退。</p>
+          </div>
+        </section>
+
+        <section class="pad-state">
+          <div class="pad-badge" id="padSource">无输入</div>
+          <div class="pad-motor">
+            <span>L1 <b id="padL1">0</b></span>
+            <span>R1 <b id="padR1">0</b></span>
+            <span>L2 <b id="padL2">0</b></span>
+            <span>R2 <b id="padR2">0</b></span>
+          </div>
+        </section>
+
+        <section class="pad-buttons" id="padButtons" aria-label="手柄按键状态"></section>
+
+        <section class="pad-hints">
+          <p><b>模式一 · 左摇杆（优先）</b>：推左摇杆 → 麦轮全向移动，方向 = 摇杆偏移方向，速度 = 摇杆偏移幅度。左摇杆生效时自动接管，LT 油门无效。</p>
+          <p><b>模式二 · LT / RT + 右摇杆</b>：左扳机 LT = 前进油门，右扳机 RT = 倒车油门（均为线性速度），右摇杆 = 方向（忽略力度）。LT 沿摇杆指向前进、RT 沿反方向倒车；右摇杆居中时 LT 默认直行前进、RT 默认直行后退。两扳机同按相互抵消。</p>
+          <p><b>两种模式相互独立</b>：左摇杆扳出即切模式一；左摇杆回中自动切回模式二（LT / RT + 右摇杆）。</p>
+          <p><b>原地转圈</b>：按住 X = 向左原地转圈，按住 B = 向右原地转圈，松开即停；按键期间优先级最高，临时接管摇杆 / 扳机。</p>
+          <p>手柄需先用蓝牙配对（Windows 设置 → 蓝牙 → 添加设备 → Xbox Wireless Controller），用 Chrome / Edge 打开本页并保持前台，按手柄任意按键激活检测。</p>
+        </section>
+      </div>
+    </main>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
