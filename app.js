@@ -216,9 +216,9 @@ const PIVOT_PATTERNS = {
   l1:       { factor: 0.8, wheels: { l1:  0.0, r1:  0.54, l2: -0.46, r2:  1.0 } },
   // 十字键右：绕 R2（右后）顺时针
   r2:       { factor: 0.8, wheels: { l1:  1.0, r1: -0.46, l2:  0.54, r2:  0.0 } },
-  // A：绕两前轮中点（+a,0）逆时针，车头不动、车尾摆动
-  // 需 0.9 才能让前轮小修正值(±85)高于固件 80 阈值
-  frontMid: { factor: 0.9, wheels: { l1: -0.37, r1:  0.37, l2: -1.0, r2:  1.0 } },
+  // A：绕两前轮中点正前方 7cm 处（归一化 xp=1.02, yp=0）旋转
+  // 前轮几乎只靠滚子横向移动（轮速≈±0.01，低于固件阈值被清零也几乎无影响），后轮主导
+  frontMid: { factor: 0.9, wheels: { l1:  0.01, r1: -0.01, l2: -1.0, r2:  1.0 } },
 };
 
 // 摇杆平滑状态（指数滤波，消除静止抖动）
@@ -549,18 +549,15 @@ function computePadDrive(gp) {
 }
 
 // ==================== 发送四轮驱动 ====================
-const KEEPALIVE_MS = 200;   // 数值不变时也定时重发，喂饱看门狗，保证持续动作
+const SEND_INTERVAL_MS = 50;   // 每 50ms（约20Hz）固定发送当前状态
 
 function sendDrive(l1, r1, l2, r2) {
   if (!commandCharacteristic) return;
   const now = performance.now();
-  const msg = `M${l1},${r1},${l2},${r2}\n`;
-  const changed = msg !== lastDriveMsg;
-  // 变化的指令最多等 30ms（触发灵敏）；不变的指令按 keepalive 周期重发
-  const wait = changed ? 30 : KEEPALIVE_MS;
-  if (now - lastSentMs < wait) return;
-  lastDriveMsg = msg;
+  if (now - lastSentMs < SEND_INTERVAL_MS) return;
   lastSentMs = now;
+  const msg = `M${l1},${r1},${l2},${r2}\n`;
+  lastDriveMsg = msg;
   sendMessage(msg).catch(() => {});
 }
 
@@ -669,7 +666,7 @@ function padTick() {
     padSource.textContent =
       drive.source === "pivot-l1" ? "十字键← 按住：绕 L1 旋转中"
       : drive.source === "pivot-r2" ? "十字键→ 按住：绕 R2 旋转中"
-      : drive.source === "pivot-front" ? "A 按住：绕两前轮中点旋转中"
+      : drive.source === "pivot-front" ? "A 按住：绕车前方7cm点旋转中"
       : drive.source === "rotate-l" ? "X 按住：向左原地转圈中"
       : drive.source === "rotate-r" ? "B 按住：向右原地转圈中"
       : drive.source === "left" ? "左摇杆全向操控中"
