@@ -207,11 +207,19 @@ const EXIT_ZONE = 0.12;       // 退出控制的迟滞阈值（小于死区，�
 const MAX_PWM = 255;
 const ROT_FACTOR = 1.0;      // B/X 原地转圈速度（0~1），全速最灵敏
 
-// ---- 绕 L1（左前）画圆 ----
+// ---- 绕定点旋转 ----
 // 几何：前后半轴 a=0.46，左右半轴 b=0.54（归一化 a+b=1）
-// 四轮归一化（对角轮 R2 最快，设为 1），L1 定点为 0
-const CIRCLE_FACTOR = 0.8;   // 画圆整体速度（0~1），慢一点定点更稳
-const CIRCLE_WHEELS = { l1: 0.0, r1: 0.54, l2: -0.46, r2: 1.0 };
+// 每种模式四轮归一化（最快轮=1），定点轮=0
+const CIRCLE_FACTOR = 0.8;   // 绕点旋转默认速度（0~1），慢一点定点更稳
+const PIVOT_PATTERNS = {
+  // 十字键左：绕 L1（左前）逆时针
+  l1:       { factor: 0.8, wheels: { l1:  0.0, r1:  0.54, l2: -0.46, r2:  1.0 } },
+  // 十字键右：绕 R2（右后）顺时针
+  r2:       { factor: 0.8, wheels: { l1:  1.0, r1: -0.46, l2:  0.54, r2:  0.0 } },
+  // A：绕两前轮中点（+a,0）逆时针，车头不动、车尾摆动
+  // 需 0.9 才能让前轮小修正值(±85)高于固件 80 阈值
+  frontMid: { factor: 0.9, wheels: { l1: -0.37, r1:  0.37, l2: -1.0, r2:  1.0 } },
+};
 
 // 摇杆平滑状态（指数滤波，消除静止抖动）
 const stickSmooth = {
@@ -459,19 +467,27 @@ function computePadDrive(gp) {
   let vx = 0, vy = 0, rot = 0, source = "none";
   let direct = null;   // 特殊动作直接指定四轮归一化值
 
-  // ---- B / X 原地转圈，Y 绕 L1 画圆（优先级最高）----
-  const btnB = !!gp.buttons[1]?.pressed;   // B = 向右原地转圈
-  const btnX = !!gp.buttons[2]?.pressed;   // X = 向左原地转圈
-  const btnY = !!gp.buttons[3]?.pressed;   // Y = 绕 L1 画圆
+  // ---- 特殊按键动作（优先级最高）----
+  const btnB = !!gp.buttons[1]?.pressed;    // B = 向右原地转圈
+  const btnX = !!gp.buttons[2]?.pressed;    // X = 向左原地转圈
+  const btnA = !!gp.buttons[0]?.pressed;    // A = 绕两前轮中点旋转
+  const dpadL = !!gp.buttons[14]?.pressed;  // 十字键左 = 绕 L1 旋转
+  const dpadR = !!gp.buttons[15]?.pressed;  // 十字键右 = 绕 R2 旋转
   if (btnB) {
     rot = -ROT_FACTOR;     // 顺时针 → 右转
     source = "rotate-r";
   } else if (btnX) {
     rot = ROT_FACTOR;      // 逆时针 → 左转
     source = "rotate-l";
-  } else if (btnY) {
-    direct = CIRCLE_WHEELS;
-    source = "circle";
+  } else if (dpadL) {
+    direct = PIVOT_PATTERNS.l1;
+    source = "pivot-l1";
+  } else if (dpadR) {
+    direct = PIVOT_PATTERNS.r2;
+    source = "pivot-r2";
+  } else if (btnA) {
+    direct = PIVOT_PATTERNS.frontMid;
+    source = "pivot-front";
   }
 
   if (source === "none") {
@@ -509,13 +525,15 @@ function computePadDrive(gp) {
     }
   }
 
-  // 绕 L1 画圆：直接输出固定四轮模式（L1 不动）
+  // 绕定点旋转：直接输出固定四轮模式
   if (direct) {
+    const f = direct.factor;
+    const wv = direct.wheels;
     return {
-      l1: Math.round(direct.l1 * CIRCLE_FACTOR * MAX_PWM),
-      r1: Math.round(direct.r1 * CIRCLE_FACTOR * MAX_PWM),
-      l2: Math.round(direct.l2 * CIRCLE_FACTOR * MAX_PWM),
-      r2: Math.round(direct.r2 * CIRCLE_FACTOR * MAX_PWM),
+      l1: Math.round(wv.l1 * f * MAX_PWM),
+      r1: Math.round(wv.r1 * f * MAX_PWM),
+      l2: Math.round(wv.l2 * f * MAX_PWM),
+      r2: Math.round(wv.r2 * f * MAX_PWM),
       source,
     };
   }
@@ -644,7 +662,9 @@ function padTick() {
     // 驱动计算
     const drive = computePadDrive(gp);
     padSource.textContent =
-      drive.source === "circle" ? "Y 按住：绕左前轮 L1 画圆中"
+      drive.source === "pivot-l1" ? "十字键← 按住：绕 L1 旋转中"
+      : drive.source === "pivot-r2" ? "十字键→ 按住：绕 R2 旋转中"
+      : drive.source === "pivot-front" ? "A 按住：绕两前轮中点旋转中"
       : drive.source === "rotate-l" ? "X 按住：向左原地转圈中"
       : drive.source === "rotate-r" ? "B 按住：向右原地转圈中"
       : drive.source === "left" ? "左摇杆全向操控中"
