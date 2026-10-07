@@ -616,7 +616,12 @@ function padTick() {
   } else {
     padDot.classList.add("on");
     padStatusText.textContent = `已连接：${gp.id}`;
-    padInfo.textContent = `mapping: ${gp.mapping || "none"} · index ${gp.index}`;
+    // 诊断：实时显示按下的按键编号，用于确认 A/B/X/Y 的真实索引
+    const pressedIdx = gp.buttons
+      .map((b, i) => (b.pressed || b.value > 0.5 ? i : -1))
+      .filter((i) => i >= 0).join(",");
+    padInfo.textContent =
+      `mapping: ${gp.mapping || "none"} · 按下按键编号: [${pressedIdx || "无"}]`;
 
     const lx = gp.axes[0] || 0, ly = gp.axes[1] || 0;
     const rx = gp.axes[2] || 0, ry = gp.axes[3] || 0;
