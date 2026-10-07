@@ -29,7 +29,7 @@ let activeKeyCommand = null;
 // ==================== 指令映射 ====================
 const commandNames = {
   F: "前进", B: "后退", L: "左移", R: "右移", S: "停止",
-  TL: "原地左转", TR: "原地右转",
+  TL: "原地左转", TR: "原地右转", C: "绕左前轮画圆",
 };
 
 const keyCommands = {
@@ -206,6 +206,12 @@ const DEADZONE = 0.18;        // 进入控制的死区
 const EXIT_ZONE = 0.12;       // 退出控制的迟滞阈值（小于死区，防抖）
 const MAX_PWM = 255;
 const ROT_FACTOR = 1.0;      // B/X 原地转圈速度（0~1），全速最灵敏
+
+// ---- 绕 L1（左前）画圆 ----
+// 几何：前后半轴 a=0.46，左右半轴 b=0.54（归一化 a+b=1）
+// 四轮归一化（对角轮 R2 最快，设为 1），L1 定点为 0
+const CIRCLE_FACTOR = 0.8;   // 画圆整体速度（0~1），慢一点定点更稳
+const CIRCLE_WHEELS = { l1: 0.0, r1: 0.54, l2: -0.46, r2: 1.0 };
 
 // 摇杆平滑状态（指数滤波，消除静止抖动）
 const stickSmooth = {
@@ -451,16 +457,21 @@ function computePadDrive(gp) {
   if (!leftActive && lMag > DEADZONE) leftActive = true;
 
   let vx = 0, vy = 0, rot = 0, source = "none";
+  let direct = null;   // 特殊动作直接指定四轮归一化值
 
-  // ---- B / X 原地转圈（优先级最高）----
+  // ---- B / X 原地转圈，Y 绕 L1 画圆（优先级最高）----
   const btnB = !!gp.buttons[1]?.pressed;   // B = 向右原地转圈
   const btnX = !!gp.buttons[2]?.pressed;   // X = 向左原地转圈
+  const btnY = !!gp.buttons[3]?.pressed;   // Y = 绕 L1 画圆
   if (btnB) {
     rot = -ROT_FACTOR;     // 顺时针 → 右转
     source = "rotate-r";
   } else if (btnX) {
     rot = ROT_FACTOR;      // 逆时针 → 左转
     source = "rotate-l";
+  } else if (btnY) {
+    direct = CIRCLE_WHEELS;
+    source = "circle";
   }
 
   if (source === "none") {
@@ -496,6 +507,17 @@ function computePadDrive(gp) {
         source = "lt-right";
       }
     }
+  }
+
+  // 绕 L1 画圆：直接输出固定四轮模式（L1 不动）
+  if (direct) {
+    return {
+      l1: Math.round(direct.l1 * CIRCLE_FACTOR * MAX_PWM),
+      r1: Math.round(direct.r1 * CIRCLE_FACTOR * MAX_PWM),
+      l2: Math.round(direct.l2 * CIRCLE_FACTOR * MAX_PWM),
+      r2: Math.round(direct.r2 * CIRCLE_FACTOR * MAX_PWM),
+      source,
+    };
   }
 
   const w = mecanumKinematics(vx, vy, rot);
@@ -622,7 +644,8 @@ function padTick() {
     // 驱动计算
     const drive = computePadDrive(gp);
     padSource.textContent =
-      drive.source === "rotate-l" ? "X 按住：向左原地转圈中"
+      drive.source === "circle" ? "Y 按住：绕左前轮 L1 画圆中"
+      : drive.source === "rotate-l" ? "X 按住：向左原地转圈中"
       : drive.source === "rotate-r" ? "B 按住：向右原地转圈中"
       : drive.source === "left" ? "左摇杆全向操控中"
       : drive.source === "lt-right" ? "LT前进 / RT倒车 + 右摇杆方向"

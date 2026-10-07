@@ -90,7 +90,8 @@ h1 {
 
 .primary-button:disabled,
 .control-button:disabled,
-.rotate-button:disabled {
+.rotate-button:disabled,
+.circle-button:disabled {
   cursor: not-allowed;
   opacity: 0.55;
   transform: none;
@@ -261,6 +262,29 @@ h1 {
 
 .rotate-button.left-rot { border-radius: 10px 4px 4px 10px; }
 .rotate-button.right-rot { border-radius: 4px 10px 10px 4px; }
+
+/* 绕左前轮画圆按钮 */
+.circle-row { margin-top: 12px; }
+.circle-button {
+  width: 100%;
+  height: 54px;
+  border: 0;
+  border-radius: 10px;
+  cursor: pointer;
+  color: #134e4a;
+  background: #ccfbf1;
+  font-size: 17px;
+  font-weight: 800;
+  box-shadow: inset 0 -3px 0 rgba(15, 23, 42, 0.08);
+  transition: transform 140ms ease, background 140ms ease;
+}
+.circle-button:hover { transform: translateY(-1px); }
+.circle-button:active,
+.circle-button.active {
+  transform: translateY(2px);
+  background: #5eead4;
+  box-shadow: inset 0 2px 0 rgba(15, 23, 42, 0.08);
+}
 
 .command-map {
   display: flex;
